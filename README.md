@@ -6,6 +6,7 @@ Convert Active Directory Mobile Account to Local Account via Self Service
 
 - Rich Trouton for the "meat" of this script - [Rich's Script](https://derflounder.wordpress.com/2016/12/21/migrating-ad-mobile-accounts-to-local-user-accounts/)
 - Patrick Gallagher (credited by Rich in his work) - [MigrateUserHomeToDomainAcct.sh](https://twitter.com/patgmac)
+- Lisa Davies (also credited by Rich in his work)
 - Kevin Hendricks - [Cocoa Dialog Progress bar example](http://mstratman.github.io/cocoadialog/examples/progressbar.sh.txt)
 
 #### This is BETA !
