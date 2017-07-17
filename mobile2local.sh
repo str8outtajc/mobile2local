@@ -526,7 +526,7 @@ finalizeAccount ()
 
 set_log
 hideSelfService >> $log_location 2>&1
-#checkMobileAccount >> $log_location 2>&1
+checkMobileAccount >> $log_location 2>&1
 openingMessage1
 if [ "$openingMessageChoice1" == "Continue" ]
 	then quitAllApps
@@ -618,5 +618,5 @@ wait
 rm -f /tmp/hpipe
 
 rebootDialog
-open $log_location
+
 exit 0
