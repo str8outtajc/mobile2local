@@ -6,6 +6,7 @@
 # https://derflounder.wordpress.com/2016/12/21/migrating-ad-mobile-accounts-to-local-user-accounts/
 # Rich also credits Patrick Gallagher - MigrateUserHomeToDomainAcct.sh
 # https://twitter.com/patgmac
+# Rich also credits Lisa Davies
 # Kevin Hendricks
 # Cocoa Dialog Progress bar example
 # http://mstratman.github.io/cocoadialog/examples/progressbar.sh.txt
