@@ -33,3 +33,8 @@ Key differences:
 
 - At this point - no account taken for user home directories that reside in custom locations
 - Sometimes false positives in error control loop for account name
+
+#### To Do
+
+- Add stop gap to prevent tool from running if home directory is not in standard location
+- Eventually - rename new home directory to same volume it is on currently 
