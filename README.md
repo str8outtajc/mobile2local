@@ -25,9 +25,9 @@ Key differences:
 - Suggests a new account name for user
 - Allows user to change to something custom if he or she wishes to
 - Lots of error contol
--- User can't pick an existing account name
--- User can't create account name with illegal characters
--- User can't create an account if home directory for that account is already in /Users
+--* User can't pick an existing account name
+--* User can't create account name with illegal characters
+--* User can't create an account if home directory for that account is already in /Users
 
 #### Known Issues and Limitations
 
