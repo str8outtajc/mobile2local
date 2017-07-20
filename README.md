@@ -38,3 +38,15 @@ Key differences:
 
 - Add stop gap to prevent tool from running if home directory is not in standard location
 - Eventually - rename new home directory to same volume it is on currently 
+
+#### Revision History
+
+- Version 1.21 Beta
+-- Added a check for user home directory location - it's ugly
+-- Determining home folder disk with variables
+```shell
+currentUserHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | sed -n 's|.* \(/.*\)|\1|p'`
+currentUserDirDisk=`df "$currentUserHome" | awk '{print $1}' | tail -1`
+```
+-- Then compare to disk for "/Users"
+-- If they don't match - error message - can't continue
