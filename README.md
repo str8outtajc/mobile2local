@@ -2,20 +2,20 @@
 
 Convert Active Directory Mobile Account to Local Account via Self Service
 
-#### Credits
+### Credits
 
 - Rich Trouton for the "meat" of this script - [Rich's Script](https://derflounder.wordpress.com/2016/12/21/migrating-ad-mobile-accounts-to-local-user-accounts/)
 - Patrick Gallagher (credited by Rich in his work) - [MigrateUserHomeToDomainAcct.sh](https://twitter.com/patgmac)
 - Lisa Davies (also credited by Rich in his work)
 - Kevin Hendricks - [Cocoa Dialog Progress bar example](http://mstratman.github.io/cocoadialog/examples/progressbar.sh.txt)
 
-#### This is BETA !
+### This is BETA !
 
 - Please do not deploy this script to prodcution environments at this time
 - It needs more testing
 - It works great in "my" organization's environment, but needs a lot more testing
 
-#### Overview
+### Overview
 
 Functionally, this script pretty much does exactly what Rich's does.  
 
@@ -29,17 +29,11 @@ Key differences:
   - User can't create account name with illegal characters
   - User can't create an account if home directory for that account is already in /Users
 
-#### Known Issues and Limitations
+### Known Issues and Limitations
 
-- At this point - no account taken for user home directories that reside in custom locations
 - Sometimes false positives in error control loop for account name
 
-#### To Do
-
-- Add stop gap to prevent tool from running if home directory is not in standard location
-- Eventually - rename new home directory to same volume it is on currently 
-
-#### Revision History
+### Revision History
 
 ##### Version 1.21 Beta
 - Added a check for user home directory location - it's ugly
