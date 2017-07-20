@@ -41,12 +41,12 @@ Key differences:
 
 #### Revision History
 
-- Version 1.21 Beta
--- Added a check for user home directory location - it's ugly
--- Determining home folder disk with variables
+##### Version 1.21 Beta
+- Added a check for user home directory location - it's ugly
+- Determining home folder disk with variables
 ```shell
 currentUserHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | sed -n 's|.* \(/.*\)|\1|p'`
 currentUserDirDisk=`df "$currentUserHome" | awk '{print $1}' | tail -1`
 ```
--- Then compare to disk for "/Users"
--- If they don't match - error message - can't continue
+- Then compare to disk for "/Users"
+- If they don't match - error message - can't continue
