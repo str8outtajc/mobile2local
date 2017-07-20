@@ -44,3 +44,4 @@ currentUserDirDisk=`df "$currentUserHome" | awk '{print $1}' | tail -1`
 ```
 - Then compare to disk for "/Users"
 - If they don't match - error message - can't continue
+- The idea behind all this is that new local accounts will have home directories in standard /Users.  If previous home directory was on a different disk than /Users - the rename of the home directory could potentially croak.  (not enough disk space, etc.) 
