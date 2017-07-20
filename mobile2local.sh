@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version 1.2 Beta
+# Version 1.21 Beta
 
 # Credits
 # Rich Trouton for the "meat" of this script
@@ -84,7 +84,9 @@ AuthenticationAuthority
 log_location="$log_dir/$log_file"
 currentUser=$(stat -f %Su /dev/console)
 currentUserID=$(stat -f %u /dev/console)
-currentUserHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | awk -F ": " '{print $2}'`
+currentUserHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | sed -n 's|.* \(/.*\)|\1|p'`
+currentUserDarwinFolders=`sudo -u $currentUser getconf DARWIN_USER_DIR`
+homeParentDirectory=`dirname $currentUserHome`
 currentUserFirstName=`/usr/bin/dscl . -read /Users/$currentUser FirstName | awk -F ": " '{print $2}'`
 currentUserLastName=`/usr/bin/dscl . -read /Users/$currentUser LastName | awk -F ": " '{print $2}'`
 OS_VERS_MAJ=`/usr/bin/defaults read /System/Library/CoreServices/SystemVersion ProductVersion | awk -F "." '{ print $2 }'`
@@ -143,6 +145,19 @@ tell application "Finder"
 	& return & return & "Unable to continue." as critical \
 	buttons {"OK"} default button 1
 end tell
+EOT
+}
+
+diskCheckFailDialog ()
+{
+	/usr/bin/osascript << EOT
+	tell application "Finder"
+		activate
+		display alert "Error" \
+		& return & return & "Your home directory does not appear to be on the startup disk." \
+		& return & return & "Unfortunately, this tool is not equipped to handle that scenario." \
+		buttons {"OK"} default button 1 as critical
+	end tell
 EOT
 }
 
@@ -324,6 +339,29 @@ if [[ `/usr/bin/dscl . -read /Users/$currentUser AuthenticationAuthority | grep 
 fi
 }
 
+checkUserHomeDisk ()
+{
+	echo -e "\n===================================\n===================================\n"
+	echo "Sanity Check - check if current user's home directory on same disk as /Users ?..."
+	usersDirDisk=`df /Users | awk '{print $1}' | tail -1`
+	currentUserDirDisk=`df "$currentUserHome" | awk '{print $1}' | tail -1`
+	if [ "$usersDirDisk" == "$currentUserDirDisk" ]
+		then
+			echo "Sanity Check passed"
+			echo "Standard Users directory resides on disk $usersDirDisk"
+			echo "Current Users directory - $currentUserHome - also resides on $currentUserDirDisk"
+		else
+			echo -e "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+			echo "Sanity Check Failed !"
+			echo -e "!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+			echo "Standard Users directory resides on disk $usersDirDisk"
+			echo "Current Users directory - $currentUserHome - resides on $currentUserDirDisk"
+			echo "Displaying explanation to user and aborting"
+			diskCheckFailDialog
+			exit 253
+	fi
+}
+
 generateCustomizedLongName ()
 {
 	customizeLoop=99
@@ -369,6 +407,7 @@ echo "Here is what we know about $currentUser so far:"
 echo "First Name -- $currentUserFirstName"
 echo "Last Name -- $currentUserLastName"
 echo "Home -- $currentUserHome"
+echo "DARWIN Folder -- $currentUserDarwinFolders"
 echo "UID -- $currentUserID"
 echo -e "\nJust for logging purposses, let's see if $currentUser is a local admin..."
 dseditgroup -o checkmember -m $currentUser -n . admin
@@ -528,6 +567,7 @@ finalizeAccount ()
 set_log
 hideSelfService >> $log_location 2>&1
 checkMobileAccount >> $log_location 2>&1
+checkUserHomeDisk >> $log_location 2>&1
 openingMessage1
 if [ "$openingMessageChoice1" == "Continue" ]
 	then quitAllApps
@@ -580,7 +620,7 @@ echo "Short Name		$effectiveShortAccountName" >> $log_location 2>/dev/null
 echo -e "New Home Dir		/Users/$effectiveShortAccountName \n" >> $log_location 2>/dev/null
 echo "Asking user if user wishes to proceed..."
 displayFinalWarningDialog  >> $log_location 2>/dev/null
-if [ $proceedWithConversionChoice == "Proceed" ]
+if [ "$proceedWithConversionChoice" == "Proceed" ]
 	then
 		echo "User wants to proceed" >> $log_location 2>/dev/null
 	else
