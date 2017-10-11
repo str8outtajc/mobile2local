@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version 1.21 Beta
+# Version 1.22 Beta
 
 # Credits
 # Rich Trouton for the "meat" of this script
@@ -385,7 +385,6 @@ generateCustomizedLongName ()
 					if [[ `dscl . -list /Users RealName | grep "$customLongName"` ]]
 						then
 							echo "Well darn - this one is already taken.  Informing user to try again..."
-							customizeLongName
 						else
 							echo "$customLongName is available"
 							echo "Yee Hah - proceeding"
