@@ -236,7 +236,7 @@ suggestNewAccount ()
 	acceptSuggestionChoice=`/usr/bin/osascript << EOT
 	tell application "Finder"
 		activate
-		display dialog "Later, we will double-check to make sure that the folloiwng is available, but this is what we suggest for a new account:" \
+		display dialog "Later, we will double-check to make sure that the following is available, but this is what we suggest for a new account:" \
 			& return & return & "Long Account Name - $proposedLongName" \
 			& return &  "Account Name - $proposedShortName" \
 			buttons {"Customize","Accept"} default button 2
