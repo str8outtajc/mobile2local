@@ -11,8 +11,8 @@ Convert Active Directory Mobile Account to Local Account via Self Service
 
 ### This is BETA !
 
-- Please do not deploy this script to prodcution environments at this time
-- It needs more testing
+- Deploy as a production tool at your own risk
+- It needs more testing and more feedback
 - It works great in "my" organization's environment, but needs a lot more testing
 
 ### Overview
@@ -31,7 +31,7 @@ Key differences:
 
 ### Known Issues and Limitations
 
-- Sometimes false positives in error control loop for account name
+- Unable to handle conversions if current user's home folder is not on same disk as the new home folder location.  See below
 
 ### Revision History
 
