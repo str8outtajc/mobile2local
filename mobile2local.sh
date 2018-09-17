@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version 1.22 Beta
+# Version 1.23 Beta
 
 # Credits
 # Rich Trouton for the "meat" of this script
@@ -31,7 +31,7 @@ myOrgVPN="Our Pathetic VPN"
 # Path to your Cocoa Dialog binary
 # You don't "have" to install Cocoa Dialog.
 # Users just won't see a progress bar when conversion occurs
-# Script errors gracefully if you don't really have Cocoa Dialog installed
+# Script errors gracefully if you don't have Cocoa Dialog installed
 cocoaDialog='/private/tmp/CocoaDialog.app/Contents/MacOS/CocoaDialog'
 
 # Icon Options (Making sure we have a decent icon to use somewhere)
@@ -548,6 +548,8 @@ updatePermissions ()
 	/usr/sbin/chgrp -R staff "$currentUserHome"
 	echo "Modifying home direcory name."
 	mv /Users/$currentUser /Users/$effectiveShortAccountName
+	echo "Killing .account file..."
+	rm -f /Users/$currentUser/.account || true
 }
 
 finalizeAccount ()
