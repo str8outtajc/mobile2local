@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version 1.23 Beta
+# Version 1.60 Beta
 
 # Credits
 # Rich Trouton for the "meat" of this script
@@ -10,6 +10,8 @@
 # Kevin Hendricks
 # Cocoa Dialog Progress bar example
 # http://mstratman.github.io/cocoadialog/examples/progressbar.sh.txt
+# Jeffrey Compton - for the extra UI prompts and validation
+# Ryan Slater - for improved EOT handling and much improved English dialogs
 
 # Setting IFS Env to only use new lines as field seperator
 IFS=$'\n'
@@ -21,9 +23,9 @@ log_dir="/Library/Logs/MyCompany"
 log_file="mobile2local.log"
 
 # Application (Apple Script friendly) name of your company's VPN application
-# See GUI dialog funtions 'openingMessage2' and 'quitAllApps' for how this is used
+# See GUI dialog funtions 'openingMessage1' and 'quitAllApps' for how this is used
 # Basically - we guide the user to shutting down all apps except those specified in white list
-# White list currently set to Self Service, VPN Client (as defined with variable) Finder, Console, Terminal, Atom
+# White list currently set to Self Service, VPN Client (as defined with variable), Finder, Console, Terminal, Atom
 # You may need to add even more items to your white list
 # But by default - we will simply whitelist Self Service and VPN
 myOrgVPN="Our Pathetic VPN"
@@ -35,7 +37,7 @@ myOrgVPN="Our Pathetic VPN"
 cocoaDialog='/private/tmp/CocoaDialog.app/Contents/MacOS/CocoaDialog'
 
 # Icon Options (Making sure we have a decent icon to use somewhere)
-if [ -f /path/to/my/compony/logo/icon/file ]
+if [ -f /path/to/my/company/logo/icon/file ]
 	then
 		dialogIcon="Path:To:My:Company:Logo:Icon:File.png"
 elif [ -f /Applications/Self\ Service.app/Contents/Resources/Self\ Service.icns ]
@@ -59,10 +61,13 @@ AltSecurityIdentities
 SMBPrimaryGroupSID
 OriginalAuthenticationAuthority
 OriginalNodeName
+AuthenticationAuthority
 SMBSID
 SMBScriptPath
 SMBPasswordLastSet
 SMBGroupRID
+PrimaryNTDomain
+AppleMetaRecordName
 PrimaryNTDomain
 MCXSettings
 MCXFlags
@@ -71,9 +76,6 @@ OriginalNFSHomeDirectory
 SMBHome
 SMBHomeDrive
 "dsAttrTypeNative:original_smb_home"
-PrimaryNTDomain
-AppleMetaRecordName
-AuthenticationAuthority
 )
 
 ####################################
@@ -86,16 +88,16 @@ currentUser=$(stat -f %Su /dev/console)
 currentUserID=$(stat -f %u /dev/console)
 currentUserHome=`/usr/bin/dscl . -read /Users/$currentUser NFSHomeDirectory | sed -n 's|.* \(/.*\)|\1|p'`
 currentUserDarwinFolders=`sudo -u $currentUser getconf DARWIN_USER_DIR`
-homeParentDirectory=`dirname $currentUserHome`
 currentUserFirstName=`/usr/bin/dscl . -read /Users/$currentUser FirstName | awk -F ": " '{print $2}'`
 currentUserLastName=`/usr/bin/dscl . -read /Users/$currentUser LastName | awk -F ": " '{print $2}'`
-OS_VERS_MAJ=`/usr/bin/defaults read /System/Library/CoreServices/SystemVersion ProductVersion | awk -F "." '{ print $2 }'`
 computerName=`/usr/sbin/systemsetup -getComputerName`
 OS_REV=`/usr/bin/sw_vers -productVersion`
 
 ####################################
 ###########   Set Log  #############
 ####################################
+
+# Check if a log file exists, if not, create it and make sure it's readable, editable and Owned appropriately
 set_log ()
 {
 if [ -d $log_dir ]
@@ -124,7 +126,7 @@ if [ -f $log_location ]
 fi
 
 echo -e "===================================\n===================================\n" >> $log_location
-echo `date` >> $log_location
+echo "`date`" >> $log_location
 echo "Beginning the \"mobile2local\" script." >> $log_location
 echo $log_dir_status >> $log_location
 echo $archive_status >> $log_location
@@ -133,27 +135,30 @@ echo -e "\nSystem Information: \nComputer Name = $computerName \nOS Version = $O
 }
 
 
-#########################################
-########## GUI Dialogues ################
-#########################################
+###################################################
+############# GUI Dialogue Functions #############
+###################################################
+
 notMobileAccountDialog ()
 {
-/usr/bin/osascript << EOT
-tell application "Finder"
-	activate
-	display alert "$currentUser does not appear to be an Active Directory Mobile User account." \
-	& return & return & "Unable to continue." as critical \
-	buttons {"OK"} default button 1
-end tell
+	/usr/bin/osascript <<- EOT
+	tell application "Finder"
+		activate
+		display alert "-- User Not an AD Account --" \
+   			& return & return & "$currentUser does not appear to be an Active Directory Mobile User account." \
+			& return & return & "Unable to continue." as critical \
+		buttons {"OK"} default button 1
+	end tell
 EOT
 }
 
 diskCheckFailDialog ()
 {
-	/usr/bin/osascript << EOT
+	/usr/bin/osascript <<- EOT
 	tell application "Finder"
 		activate
-		display alert "Error" \
+		display alert "-- Home not found on Startup Disk --" \
+       	& return & return &"Error" \
 		& return & return & "Your home directory does not appear to be on the startup disk." \
 		& return & return & "Unfortunately, this tool is not equipped to handle that scenario." \
 		buttons {"OK"} default button 1 as critical
@@ -163,15 +168,16 @@ EOT
 
 openingMessage1 ()
 {
-openingMessageChoice1=`/usr/bin/osascript << EOT
+openingMessageChoice1=`/usr/bin/osascript <<- EOT
 tell application "Finder"
 	activate
-	display dialog "This utility will attempt the following:" \
-	& return & return & "1. Check current account directory status" \
-	& return & "2. Unbind Mac from Active Directory if bound" \
-	& return & "3. Convert AD account to a standard local account" \
-	& return & return & "NOTE: Please reboot your Mac after this process has completed"\
-	& return & return & "WARNING: DO NOT REBOOT OR OTHERWISE INTERRUPT THIS UTILITY WHILE IT IS IN PROGRESS.  DOING SO WILL RESULT IN AN UNSTABLE SYSTEM." \
+	display dialog "-- Getting Started --" \
+	& return & return & "This utility will attempt the following:" \
+	& return & return & "1. Check if your account is a Mobile Account" \
+	& return & "2. Unbind your Mac from Active Directory" \
+	& return & "3. Convert your Mobile Account to a Local User Account" \
+	& return & return & "You will need to reboot your Mac after this process has completed"\
+	& return & return & "DO NOT INTERRUPT THIS UTILITY WHILE IT IS IN PROGRESS. DOING SO WILL RESULT IN AN UNSTABLE SYSTEM." \
 	buttons {"Cancel","Continue"} default button 2 cancel button 1 with icon file "$dialogIcon"
 set openingMessageChoice1 to button returned of the result
 end tell
@@ -179,23 +185,9 @@ return openingMessageChoice1
 EOT`
 }
 
-openingMessage2 ()
-{
-openingMessageChoice2=`/usr/bin/osascript << EOT
-tell application "Finder"
-	activate
-	display alert "Before running this utility, all open applications (except Self Service and VPN) must be quit." \
-	& return & return & "TIP: For best experience, leave this dialog open, shut down applications yourself, then select - Quit All Applications Now." \
-	as critical buttons {"Cancel","Quit All Applications Now"} default button 2 cancel button 1
-set openingMessageChoice2 to button returned of the result
-end tell
-return openingMessageChoice2
-EOT`
-}
-
 quitAllApps ()
 {
-quitAllAppsStatus=`/usr/bin/osascript << EOT
+quitAllAppsStatus=`/usr/bin/osascript <<- EOT
 set quitAllAppsStatus to "OK"
 set openAppsCount to 99
 repeat while openAppsCount > 0
@@ -207,7 +199,7 @@ repeat while openAppsCount > 0
 	set displayList to openApps as string
 	if openAppsCount > 0 then
 		tell application "Finder"
-			display dialog "The following " & openAppsCount & " application(s) need to be quit before proceeding: " & return & return & displayList & return & return & "WARNING: You may lose data if you choose to Force Quit Apps!" & return & return & "TIP: Closing windows by clicking the red dot in upper left hand corner of application does not necessarily QUIT the applicaiton.  You need to actually select QUIT from the application menu." buttons {"Cancel", "Force Quit Apps", "Check Again"} default button 3 cancel button 1 with icon caution
+			display dialog "-- Checking for Open Applications --" & return & return & "The following " & openAppsCount & " application(s) need to be quit before proceeding: " & return & return & displayList & return & return & "WARNING: You may lose data if you choose to Force Quit Apps!" & return & return & "TIP: Closing windows by clicking the red dot in upper left hand corner of app may not fully QUIT the applicaiton.  You need to actually select QUIT from the Application drop down menu OR the Dock icon" buttons {"Cancel", "Force Quit Apps", "Check Again"} default button 3 cancel button 1 with icon caution
 			set forceQuitChoice to button returned of the result
 			if forceQuitChoice = "Force Quit Apps" then
 				try
@@ -233,76 +225,73 @@ EOT`
 
 suggestNewAccount ()
 {
-	acceptSuggestionChoice=`/usr/bin/osascript << EOT
+	acceptSuggestionChoice=`/usr/bin/osascript <<- EOT
 	tell application "Finder"
 		activate
-		display dialog "Later, we will double-check to make sure that the following is available, but this is what we suggest for a new account:" \
-			& return & return & "Long Account Name - $proposedLongName" \
+		display dialog "-- Account Customization --" \
+			& return & return & "Would you like to customize your login name or use the ones we recommend? You'll be able to sign in with your Login Name or your EID." \
+			& return & return & "Full User Name - $proposedLongName" \
 			& return &  "Account Name - $proposedShortName" \
 			buttons {"Customize","Accept"} default button 2
 			set acceptSuggestionChoice to button returned of the result
 	end tell
 	return acceptSuggestionChoice
-	EOT`
+EOT`
 }
 
 customizeLongName ()
 {
-	customLongName=`/usr/bin/osascript << EOT
+	customLongName=`/usr/bin/osascript <<- EOT
 	tell application "Finder"
 		activate
-		display dialog "Please enter desired Long Name for your local account:" \
-			& return & return & "WARNING: Please use a unique name that only contains uppercase letters, lowercase letters, and spaces!"\
-			& return & return & "Otherwise, this dialog will run over and over again until you enter an acceptable name."\
-			& return & return & "If you wish to cancel this operation, type the word \"cancel\" into field below and click Continue."\
+		display dialog "-- Name Setup --" \
+			& return & return & "Please enter your full name using letters and spaces e.g. Bob Alice" \
+			& return & return & "You will be re-prompted until you enter an acceptable name."\
+			& return & return & "If you wish to cancel, type the word \"cancel\" into field below and click Continue."\
 			buttons {"Continue"} default button 1 default answer "$proposedLongName"
 			set customLongName to text returned of the result
 	end tell
 	return customLongName
-	EOT`
-}
-
-longNameNotUniqueError ()
-{
-	/usr/bin/osascript << EOT
-	tell application "Finder"
-		activate
-		display alert "Sorry the account name $customLongName appears to be taken already." \
-		& return & return & "Please try again." \
-		buttons {"OK"} default button 1
-	end tell
-EOT
+EOT`
 }
 
 checkFailDialog ()
 {
-customizeAfterCheckFailChoice=`/usr/bin/osascript << EOT
-display dialog "Unfortunately, you can not use $effectiveLongAccountName" \
-	& return & return & "$(displaySummaryDialog)" \
-	& return & return & "Please select a different account name" \
-	buttons {"Cancel","Customize"} default button 2 cancel button 1
-set customizeAfterCheckFailChoice to button returned of the result
-return customizeAfterCheckFailChoice
-EOT`
+	customizeAfterCheckFailChoice=`/usr/bin/osascript <<- EOT
+		tell application "Finder"
+		activate
+		display dialog "-- We found some problems --" \
+			& return & return & "Unfortunately, you can not use $effectiveLongAccountName" \
+			& return & return & "$(displaySummaryDialog)" \
+			& return & return & "Please try entering a different Full Name" \
+			buttons {"Cancel","Customize"} default button 2 cancel button 1
+			set customizeAfterCheckFailChoice to button returned of the result
+		end tell
+	return customizeAfterCheckFailChoice
+	EOT`
 }
 
 displayFinalWarningDialog ()
 {
-	proceedWithConversionChoice=`/usr/bin/osascript << EOT
-	display dialog "Are you certain you want to proceed with account conversion?" \
-		& return & return & "New Account Name = $effectiveLongAccountName" \
-		& return &  "New Account Short Name = $effectiveShortAccountName" \
-		& return &  "New Home Directory = /Users/$effectiveShortAccountName" \
-		& return & return & "THIS IS YOUR LAST CHANCE TO CANCEL." \
-		buttons {"Cancel","Proceed"} cancel button 1
-	set proceedWithConversionChoice to button returned of the result
-	return proceedWithConversionChoice
-EOT`
+	proceedWithConversionChoice=`/usr/bin/osascript <<- EOT
+		tell application "Finder"
+		activate
+		display dialog "-- Final Check --" \
+			& return & return & "Please check the following details and make sure you would like to proceed." \
+			& return & return & "This is your final chance to stop the process. Remember, your account Short Name will be the one you sign into your Mac with!" \
+			& return & return & "New User Full Name = $effectiveLongAccountName" \
+			& return &  "New Account Short Name = $effectiveShortAccountName" \
+			& return &  "New Home Directory = /Users/$effectiveShortAccountName" \
+			buttons {"Cancel","Proceed"} cancel button 1
+			set proceedWithConversionChoice to button returned of the result
+		end tell
+		return proceedWithConversionChoice
+	EOT`
 }
 
 rebootDialog ()
 {
-	/usr/bin/osascript << EOT
+	/usr/bin/osascript <<- EOT
 	tell application "loginwindow"
 		«event aevtrrst»
 	end tell
@@ -315,7 +304,7 @@ EOT
 
 hideSelfService ()
 {
-	/usr/bin/osascript << EOT
+	/usr/bin/osascript <<- EOT
 	try
 	tell application "Finder"
 		set visible of process "Self Service" to false
@@ -372,7 +361,7 @@ generateCustomizedLongName ()
 			sanitizedCustomLongName=`echo $customLongName | tr -cd '[[:alpha:][:space:]]'`
 			if [ "$customLongName" == "" ]
 				then
-					echo "Actually - user did not enter anthing in text field.  Oops."
+					echo "Actually - user did not enter anything in text field.  Oops."
 					customizeLongName
 			elif [ "$customLongName" == "cancel" ]
 				then
@@ -384,10 +373,10 @@ generateCustomizedLongName ()
 					echo "Making sure it is not already taken..."
 					if [[ `dscl . -list /Users RealName | grep "$customLongName"` ]]
 						then
-							echo "Well darn - this one is already taken.  Informing user to try again..."
+							echo "Long Name already in use. Informing user to try again..."
 						else
 							echo "$customLongName is available"
-							echo "Yee Hah - proceeding"
+							echo "Long Name not in use, proceeding with script"
 							effectiveLongAccountName="$customLongName"
 							effectiveShortAccountName=`echo $effectiveLongAccountName | sed 's/[^a-zA-Z]//g' | tr "[:upper:]" "[:lower:]"`
 							customizeLoop=1
@@ -420,7 +409,7 @@ proposedShortName=`echo $currentUserFirstName | sed 's/[^a-zA-Z]//g' | tr "[:upp
 proposedLongName="$currentUserFirstName $currentUserLastName"
 echo -e "\nFor the new account, we will propose the following --"
 echo "Long Name -- $proposedLongName"
-echo "Record Name -- $proposedShortName"
+echo "Short Name -- $proposedShortName"
 suggestNewAccount
 if [ "$acceptSuggestionChoice" == "Accept" ]
 	then
@@ -463,7 +452,7 @@ doubleCheckEverything ()
 		then
 			echo "Found a user account with $effectiveShortAccountName"
 			echo "Can not use $effectiveShortAccountName"
-			checksDialog[3]="Fail - Already an account with short user name $effectiveShortAccountName"
+			checksDialog[3]="FAIL - Already an account with short user name $effectiveShortAccountName"
 			let "checkScore = $checkScore + 1"
 		else
 			echo "No account with short name $effectiveShortAccountName found"
@@ -500,7 +489,7 @@ backupPassword ()
 {
 	echo -e "\nPreserving password..."
 	# Preserve the account password by backing up password hash
-	shadowhash=`/usr/bin/dscl . -read /Users/$currentUser AuthenticationAuthority | grep " ;ShadowHash;HASHLIST:<"`
+	shadowhash=$(/usr/bin/dscl -plist . -read /Users/$currentUser AuthenticationAuthority | xmllint --xpath 'string(//string[contains(text(),"ShadowHash")])' -)
 }
 
 killAdAttributes ()
@@ -522,7 +511,7 @@ killAdAttributes ()
 restorePassword ()
 {
 	echo "Restoring Password Auth Authority..."
-	/usr/bin/dscl . -create /Users/$currentUser AuthenticationAuthority \'$shadowhash\'
+	/usr/bin/dscl . -create /Users/$currentUser AuthenticationAuthority "${shadowhash}"
 }
 
 finishAccountConversion ()
@@ -604,7 +593,7 @@ if (( $checkScore > 0 ))
 										exit 0
 								fi
 							else
-								echo "We finally have something to work with." >> $log_location 2>/dev/null
+								echo "Now have something to work with." >> $log_location 2>/dev/null
 								customizeTrySuccess=1
 						fi
 					done
@@ -631,16 +620,16 @@ fi
 
 rm -f /tmp/hpipe
 mkfifo /tmp/hpipe
-$cocoaDialog progressbar --float --percent --title "Mobile to Local Account" --text "Preparing..." < /tmp/hpipe &
+$cocoaDialog progressbar --float --percent --title " Converting from Mobile to Local Account" --text "Preparing..." < /tmp/hpipe &
 exec 3<> /tmp/hpipe
 echo -n . >&3
-echo "5 Unbinding from AD if necessary" >&3
+echo "5 Unbinding from AD, if necessary" >&3
 unbindAD >> $log_location 2>/dev/null
 sleep 1
 echo "20 Backing up your password hash" >&3
 backupPassword >> $log_location 2>/dev/null
 sleep 1
-echo "35 Killing Active Directory account attributes" >&3
+echo "35 Removing Active Directory account attributes" >&3
 killAdAttributes >> $log_location 2>/dev/null
 sleep 1
 echo "50 Restoring password hash" >&3
@@ -660,5 +649,7 @@ wait
 rm -f /tmp/hpipe
 
 rebootDialog
+
+killall "Self Service"
 
 exit 0
