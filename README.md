@@ -1,6 +1,6 @@
 # End of life announcement
 This repo is now archived.  
-[A better tool is available here](https://github.com/BIG-RAT/mobile_to_local)
+[A FAR SUPERIOR TOOL IS AVAILBABLE HERE](https://github.com/BIG-RAT/mobile_to_local)
 
 # mobile2local
 
