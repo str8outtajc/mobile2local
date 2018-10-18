@@ -1,3 +1,7 @@
+# End of life announcement
+This repo is now archived.
+[A better tool is available here](https://github.com/BIG-RAT/mobile_to_local)
+
 # mobile2local
 
 Convert Active Directory Mobile Account to Local Account via Self Service
